@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Surveys | Nater-NairaRewards</title>
+  
+  <script
+    type="text/javascript"
+    src="https://pl28253503.effectivegatecpm.com/06/43/d9/0643d99b858656ffd378ed355f124ef0.js"
+  ></script>
+  <script src="https://unpkg.com/backendless/dist/backendless.min.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+  
+  <style>
+    /* 1. Global Styles (Consistent across all pages) */
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      margin: 0; 
+      background: #f4f4f4; 
+      color: #333;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .app-logo {
+      font-size: 20px;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+    .menu-icon {
+      font-size: 24px;
+      cursor: pointer;
+    }
+    /* Sidebar Styles */
+    .sidebar {
+      height: 100%; width: 0; position: fixed; z-index: 10; top: 0; left: 0;
+      background-color: #333; overflow-x: hidden; transition: 0.5s; padding-top: 60px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    }
+    .sidebar a {
+      padding: 15px 25px; text-decoration: none; font-size: 18px; color: white;
+      display: block; transition: 0.3s;
+    }
+    .sidebar a:hover { color: #f1f1f1; background-color: #555; }
+    .sidebar .active { background-color: #4CAF50; color: white; font-weight: bold; }
+    .sidebar .closebtn { position: absolute; top: 0; right: 25px; font-size: 36px; margin-left: 50px; }
+    .menu-icon-text { margin-right: 10px; font-size: 1.2em; width: 20px; display: inline-block; }
+
+    /* 2. Main Content and Card Styles */
+    .main-content {
+        padding: 20px;
+    }
+    .card { 
+      background: white; 
+      padding: 20px; 
+      margin: 15px 0; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 100%; 
+      box-sizing: border-box; 
+    }
+    .survey-item {
+        border-left: 5px solid #4CAF50;
+        margin-bottom: 20px;
+    }
+    .survey-item h3 {
+        color: #4CAF50;
+    }
+    .survey-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #777;
+    }
+    .survey-reward {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #ff9800; /* Orange for rewards */
+    }
+    .start-button {
+      padding: 10px 20px; 
+      margin-top: 10px;
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      background: #007bff; /* Blue for action button */
+      color: white; 
+      font-weight: bold;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .start-button:hover {
+        background: #0056b3;
+    }
+    .no-surveys-message {
+        text-align: center;
+        padding: 40px 20px;
+        color: #ff9800;
+        font-size: 1.1em;
+    }
+    .support-link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    /* New Floating Button Style */
+    .confirm-float-button {
+        background: #4CAF50;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    
+    /* NEW: Survey Wall Container Style */
+    #external-survey-wall {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    .wall-header {
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        font-weight: bold;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    .wall-note {
+        padding: 10px 20px;
+        background: #e3f2fd; /* Light blue background */
+        font-size: 0.9em;
+        color: #0056b3;
+    }
+
+  </style>
+  <script>
+    // --- START: Backendless and User Logic ---
+    Backendless.initApp(
+      "E1C6203E-C48A-480E-A02D-5B413B82237A", // Original Working App ID
+      "0F5C3FC7-8960-4C13-BBD0-78ECB40C54C4", // Original Working JS API Key
+      "https://sleekshelf-us.backendless.app" 
+    );
+
+    const USD_TO_NAIRA = 1500;
+    let currentUser = null; 
+
+    // --- Pocketsfull/Catalyse Research Parameters ---
+    const PF_APP_ID = 600;
+    const PF_APP_KEY = '4cb8ce9a-ff22-4350-a7c9-aefef8ac7de3';
+    const PF_SECURE_HASH_SECRET = 'bda864eb653fad57d329f45e3391cbf4';
+    const PF_BASE_URL = 'https://uf.pocketsfull.ai/earn';
+    // -----------------------------------------------
+    
+    // NEW FUNCTION: Securely generates the Pocketsfull URL
+    function generateSurveyWallURL(userId) {
+        if (!userId) {
+            console.error("User ID missing for survey wall generation.");
+            return PF_BASE_URL;
+        }
+
+        // The secure string to hash: {unique_user_id}-{app_secure_hash}
+        const hashString = `${userId}-${PF_SECURE_HASH_SECRET}`;
+        
+        // Use the MD5 library (must be loaded in the <head>)
+        const secureHash = md5(hashString); 
+
+        const url = `${PF_BASE_URL}?` + 
+                    `appId=${PF_APP_ID}` +
+                    `&key=${PF_APP_KEY}` +
+                    `&uid=${userId}` +
+                    `&hash=${secureHash}`;
+                    // &subid1 and &subid2 are optional
+
+        return url;
+    }
+
+    // NEW FUNCTION: Loads the iframe into the page
+    function loadExternalSurveyWall(userId) {
+        const wallContainer = document.getElementById('external-survey-wall-content');
+        const iframeSrc = generateSurveyWallURL(userId);
+
+        if (iframeSrc === PF_BASE_URL) {
+            wallContainer.innerHTML = '<p style="text-align: center; color: red;">Error: Could not load the external survey wall (User ID missing).</p>';
+            return;
+        }
+
+        wallContainer.innerHTML = `
+            <div class="wall-header">External Survey Wall (Pocketsfull)</div>
+            <div class="wall-note">
+                NOTE: Surveys completed here will be credited automatically. If a reward is not received, contact support.
+            </div>
+            <iframe 
+                width="100%" 
+                frameBorder="0" 
+                height="800px" 
+                src="${iframeSrc}"
+                style="display: block;">
+            </iframe>
+        `;
+    }
+
+    async function loadUser() {
+      try {
+        // Load user properties needed for balance and filtering
+        const user = await Backendless.UserService.getCurrentUser(
+            ['objectId', 'name', 'city', 'usd_balance', 'survey_completed_count']
+        ); 
+
+        if(!user) {
+          window.location.href="index.html"; 
+          return;
+        }
+        
+        const userCity = (user.city && user.city.toLowerCase()) || null;
+        currentUser = {
+            ...user,
+            userCity: userCity,
+            userId: user.objectId
+        };
+
+        document.getElementById('username-display').innerText = currentUser.name || 'User';
+        
+        // 1. Load the External Survey Wall (Pocketsfull/Catalyse)
+        loadExternalSurveyWall(currentUser.userId); 
+        
+        // 2. Load the Custom Surveys (Your Backendless 'Surveys' table)
+        await loadCustomSurveys(currentUser.userCity, currentUser.userId);
+
+      } catch(err) {
+        console.error("Load User Error:", err);
+      }
+    }
+
+    // RENAMED FUNCTION to focus on custom, internal surveys
+    async function loadCustomSurveys(userCity, userId) {
+        const container = document.getElementById('custom-survey-list-container');
+        container.innerHTML = '<h3 style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">Your Custom Surveys</h3><p style="text-align: center;">Filtering surveys...</p>';
+        
+        let filteredSurveys = [];
+        let completedSurveyIds = [];
+        // Safely determine the city display name
+        const cityDisplay = userCity ? userCity.toUpperCase() : 'your profile location';
+
+        // --- ENHANCED ERROR HANDLING FOR COMPLETION TRACKING ---
+        try {
+            // STEP 1: Find all surveys the current user has already completed
+            const completionQuery = Backendless.DataQueryBuilder.create()
+                                    .setWhereClause(`userId = '${userId}'`)
+                                    .setProperties(["surveyId"]); 
+            
+            const completedRecords = await Backendless.Data.of("SurveyCompletions").find(completionQuery);
+            completedSurveyIds = completedRecords.map(r => r.surveyId);
+            
+        } catch (error) {
+            console.error("Warning: Failed to retrieve SurveyCompletions. Check table existence and permissions (AuthenticatedUser RETRIEVE).", error);
+            completedSurveyIds = []; 
+        }
+
+        // --- MAIN CUSTOM SURVEY LOADING LOGIC ---
+        try {
+            // STEP 2: Build the query for available surveys, excluding completed ones
+            let surveyWhereClause = `targetCity = 'National'`;
+            
+            // Filter by city if user data is available
+            if (userCity && userCity.length > 0) { 
+                 surveyWhereClause = `targetCity = 'National' OR targetCity = '${userCity.toUpperCase()}'`;
+            }
+            
+            if (completedSurveyIds.length > 0) {
+                // EXCLUSION CLAUSE: objectId NOT IN ('id1', 'id2', ...)
+                surveyWhereClause += ` AND objectId NOT IN ('${completedSurveyIds.join("','")}')`;
+            }
+            
+            const queryBuilder = Backendless.DataQueryBuilder.create().setWhereClause(surveyWhereClause);
+            
+            filteredSurveys = await Backendless.Data.of("Surveys").find(queryBuilder);
+            
+        } catch (error) {
+            console.error("Critical Error during main Custom Survey fetch:", error);
+            container.innerHTML += `<p style="color: red; text-align: center;">Critical Error: Could not load your custom surveys from the 'Surveys' table.</p>`;
+            return;
+        }
+
+        // ** B. Render Results **
+        if (filteredSurveys.length > 0) {
+            let surveyHTML = '';
+            filteredSurveys.forEach(survey => {
+                // Ensure rewardUSD is treated as a number
+                const rewardUSD = parseFloat(survey.rewardUSD) || 0.00;
+                const nairaReward = (rewardUSD * USD_TO_NAIRA).toFixed(0);
+                const surveyUrl = survey.surveyLink || '#';
+                
+                surveyHTML += `
+                    <div class="card survey-item">
+                        <h3>${survey.title || 'Untitled Survey'}</h3>
+                        <p style="margin: 0; font-size: 0.9em;">Source: <strong>${survey.source || 'Unknown'}</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9em;">Time: ${survey.duration || 'N/A'} | Target: ${survey.targetCity || 'N/A'}</p>
+                        <div class="survey-details">
+                            <span class="survey-reward">$${rewardUSD.toFixed(2)} (₦${nairaReward})</span>
+                            
+                            <button class="start-button" onclick="startSurvey('${surveyUrl}')">Start Custom Survey</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = container.innerHTML.replace('<p style="text-align: center;">Filtering surveys...</p>', '') + surveyHTML;
+        } else {
+            // Refined 'No Surveys' Message when the query returns nothing
+            container.innerHTML = container.innerHTML.replace('<p style="text-align: center;">Filtering surveys...</p>', '') + 
+                `
+                <div class="card no-surveys-message" style="margin-top: 0;">
+                    <p>No custom surveys available for ${cityDisplay} right now.</p>
+                    <button class="start-button" style="background: #ff9800;" onclick="loadCustomSurveys(currentUser.userCity, currentUser.userId)">
+                        <span class="material-icons" style="vertical-align: middle;">refresh</span> Refresh Custom List
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Simplified startSurvey function: only redirects the user and gives no prompt
+    function startSurvey(surveyUrl) {
+        if (!surveyUrl || surveyUrl === '#') {
+            alert('Survey link is missing. Please contact support.');
+            return;
+        }
+        
+        // Opens the external link (e.g., Google Form) in a new tab
+        window.open(surveyUrl, '_blank');
+        
+        // User must return to the app and use confirm_payment.html
+        return false;
+    }
+    
+    // --- Standard Helper Functions ---
+    async function logoutUser() { 
+      try {
+        await Backendless.UserService.logout();
+        window.location.href="index.html";
+      } catch(err) { console.error(err); alert("Logout failed."); }
+    }
+    
+    function openNav() { document.getElementById("mySidebar").style.width = "250px"; }
+    function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
+
+    window.onload = loadUser;
+    // --- END: Backendless and User Logic ---
+  </script>
+</head>
+<body>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+  <div id="mySidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <a href="dashboard.html"><span class="menu-icon-text">&#128200;</span> Dashboard</a>
+    <a href="surveys.html" class="active"><span class="menu-icon-text">&#128221;</span> Surveys</a>
+    <a href="confirm_payment.html"><span class="menu-icon-text">&#10003;</span> Confirm Payment</a> 
+    <a href="withdraw.html"><span class="menu-icon-text">&#128176;</span> Withdraw/History</a> 
+    <a href="earn_more.html"><span class="menu-icon-text">&#128184;</span> Earn more</a>
+    <a href="bonus.html"><span class="menu-icon-text">&#127942;</span> Bonus</a>
+    <a href="profile.html"><span class="menu-icon-text">&#128100;</span> My Profile</a>
+    <a href="#" onclick="logoutUser()">Logout</a>
+  </div>
+
+  <div class="header-bar">
+    <span class="menu-icon" onclick="openNav()">&#9776;</span>
+    <span class="app-logo">Nater-NairaRewards</span>
+    <span id="username-display">User</span>
+  </div>
+
+  <div class="main-content">
+    <h2>Available Surveys</h2>
+    <p>Complete surveys below for instant credits or use the code from custom surveys to confirm payment.</p>
+
+    <div class="confirm-float-button" onclick="window.location.href='confirm_payment.html'">
+        <span class="material-icons" style="vertical-align: middle;">paid</span> 
+        CLICK HERE TO CONFIRM PAYMENT WITH CODE
+    </div>
+
+    <div id="external-survey-wall">
+        <div id="external-survey-wall-content">
+            <p style="text-align: center;">Loading external survey wall...</p>
+        </div>
+    </div>
+    
+    <div id="custom-survey-list-container">
+        <p style="text-align: center;">Loading your custom surveys...</p>
+    </div>
+    
+  </div>
+
+</body>
+</html>
