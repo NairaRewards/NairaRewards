@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NSUK Enrollment - Professional</title>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <script src="https://api.backendless.com/sdk/js/latest/backendless.min.js"></script>
+    <style>
+        :root { --nsuk: #004d40; --gold: #ffc107; --white: #ffffff; --success: #2ecc71; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: background 0.3s; overflow-x: hidden; }
+        
+        .scanner-container { width: 100%; max-width: 450px; text-align: center; padding: 30px; z-index: 10; }
+        
+        /* SLEEK 10PX BORDER */
+        .video-wrapper { 
+            width: 300px; height: 300px; margin: 0 auto; 
+            border: 10px solid var(--white); 
+            border-radius: 50%; overflow: hidden; position: relative; 
+            box-shadow: 0 0 40px 10px rgba(255, 255, 255, 0.7);
+            transition: 0.4s ease;
+        }
+        
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: brightness(1.1) contrast(1.1); }
+        #status { margin-top: 25px; font-weight: 800; color: var(--gold); text-transform: uppercase; min-height: 1.5em; font-size: 1.2rem; letter-spacing: 1px; }
+        .btn { background: var(--nsuk); color: white; border: none; padding: 20px; border-radius: 15px; font-weight: bold; cursor: pointer; width: 90%; margin-top: 20px; font-size: 1.1rem; transition: 0.3s; }
+        .btn:disabled { background: #111; color: #444; border: 1px solid #222; cursor: not-allowed; }
+
+        #form-ui { background: white; color: #333; padding: 35px; border-radius: 30px; display: none; width: 92%; max-width: 450px; margin: 20px 0; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 3px solid var(--nsuk); }
+        label { display: block; margin-top: 15px; font-weight: 700; color: var(--nsuk); font-size: 0.9rem; }
+        input, select { width: 100%; padding: 15px; margin: 8px 0; border: 2px solid #eee; border-radius: 12px; box-sizing: border-box; font-size: 1rem; color: #000; font-weight: 600; }
+
+        /* --- GORGEOUS CIRCULAR SUCCESS OVERLAY --- */
+        #overlay { position: fixed; inset: 0; background: radial-gradient(circle, #004d40 0%, #001a15 100%); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; text-align: center; padding: 20px; }
+        
+        .spinner-container { position: relative; width: 150px; height: 150px; margin-bottom: 30px; }
+        
+        .spinner-ring { 
+            position: absolute; inset: 0; 
+            border: 6px solid transparent; 
+            border-top-color: var(--success); 
+            border-bottom-color: var(--gold); 
+            border-radius: 50%; 
+            animation: spin-grow 2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite; 
+        }
+        
+        .spinner-inner { 
+            position: absolute; inset: 20px; 
+            border: 4px solid transparent; 
+            border-left-color: white; 
+            border-right-color: white; 
+            border-radius: 50%; 
+            animation: spin-reverse 1.5s linear infinite; 
+            opacity: 0.5;
+        }
+
+        @keyframes spin-grow {
+            0% { transform: rotate(0deg) scale(0.8); opacity: 0.5; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 1; box-shadow: 0 0 30px var(--success); }
+            100% { transform: rotate(360deg) scale(0.8); opacity: 0.5; }
+        }
+
+        @keyframes spin-reverse { 
+            0% { transform: rotate(360deg); } 
+            100% { transform: rotate(0deg); } 
+        }
+
+        .success-msg-container { animation: fadeInUp 0.8s ease-out; }
+        .success-main { font-size: 2.2rem; font-weight: 900; color: white; margin: 0; letter-spacing: 2px; }
+        .success-sub { font-size: 1.1rem; color: rgba(255,255,255,0.8); margin: 15px 0 5px; }
+        .success-redirect { font-size: 0.9rem; color: var(--gold); font-weight: 600; font-style: italic; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="overlay">
+    <div class="spinner-container">
+        <div class="spinner-ring"></div>
+        <div class="spinner-inner"></div>
+    </div>
+    <div class="success-msg-container">
+        <h1 class="success-main">REGISTRATION SUCCESSFUL</h1>
+        <p class="success-sub">Your enrollment has been completed successfully.</p>
+        <p class="success-redirect" id="loader-text">Redirecting to login page...</p>
+    </div>
+</div>
+
+<div class="scanner-container" id="scanner-ui">
+    <h2 style="color:var(--gold); margin-bottom: 5px;">NSUK ENROLLMENT</h2>
+    <div class="video-wrapper" id="ring-border">
+        <video id="webcam" playsinline autoplay muted></video>
+    </div>
+    <div id="status">SETTING UP AI...</div>
+    <button id="captureBtn" class="btn" disabled onclick="handleCapture()">WAITING FOR FACE...</button>
+    <a href="index.html" style="color:var(--gold); text-decoration:none; display:block; margin-top:20px; font-weight:bold;">← Return Home</a>
+</div>
+
+<div id="form-ui">
+    <h2 style="color:var(--nsuk); margin-top:0; text-align:center;">VERIFIED ✅</h2>
+    <label>Faculty</label><select id="faculty" onchange="loadDepts()"><option value="">-- Select Faculty --</option></select>
+    <label>Department</label><select id="dept"><option value="">-- Select Faculty First --</option></select>
+    <label>Level</label><select id="level"><option value="">-- Select Level --</option></select>
+    <input type="text" id="fullname" placeholder="Full Name">
+    <input type="text" id="matric" placeholder="Matric Number">
+    <input type="password" id="pass" placeholder="Password">
+    <button class="btn" id="subBtn" onclick="saveData()">SUBMIT ENROLLMENT</button>
+</div>
+
+<script>
+Backendless.initApp('523BE897-EEB4-4213-B3C7-136526B902A6','A49A96D8-B93B-4793-AE1B-7766D0DA8E84');
+
+const video = document.getElementById('webcam');
+const statusText = document.getElementById('status');
+const captureBtn = document.getElementById('captureBtn');
+const ring = document.getElementById('ring-border');
+const overlay = document.getElementById('overlay');
+
+let isLocked = false; 
+let lastX = 0, lastY = 0, stableFrames = 0;
+const REQUIRED_STABLE_FRAMES = 5;
+let smoothX = 0, smoothY = 0;
+let faceDescriptor = null, finalBlob = null, loop;
+
+(async () => {
+    try {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/vladmandic/face-api/model/';
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+        statusText.innerText = "CENTER YOUR FACE";
+        captureBtn.innerText = "WAITING FOR FACE...";
+        startCamera();
+        fetchDropdowns();
+    } catch (e) { statusText.innerText = "CONNECTION ERROR"; }
+})();
+
+async function startCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    video.srcObject = stream;
+    video.onloadedmetadata = () => { loop = setInterval(analyzeFace, 400); };
+}
+
+async function analyzeFace() {
+    if (video.videoWidth === 0 || isLocked) return;
+
+    const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }));
+
+    if (!det) {
+        stableFrames = 0;
+        statusText.innerText = "FACE NOT FOUND";
+        statusText.style.color = "white";
+        captureBtn.disabled = true;
+        captureBtn.innerText = "WAITING FOR FACE...";
+        ring.style.borderColor = "#fff";
+        return;
+    }
+
+    const box = det.box;
+    smoothX = smoothX === 0 ? box.x : smoothX * 0.7 + box.x * 0.3;
+    smoothY = smoothY === 0 ? box.y : smoothY * 0.7 + box.y * 0.3;
+
+    const moveX = Math.abs(smoothX - lastX);
+    const moveY = Math.abs(smoothY - lastY);
+    const isCentered = Math.abs((box.x + box.width/2) - video.videoWidth/2) < 60;
+
+    if (moveX < 10 && moveY < 10 && isCentered) {
+        stableFrames++;
+    } else {
+        stableFrames = 0;
+        statusText.innerText = isCentered ? "STAY STILL" : "CENTER YOUR FACE";
+        statusText.style.color = "#ffc107";
+        captureBtn.disabled = true;
+        captureBtn.innerText = "WAITING FOR FACE...";
+        ring.style.borderColor = "#ffc107";
+    }
+
+    if (stableFrames >= REQUIRED_STABLE_FRAMES) {
+        statusText.innerText = "CLICK TO CAPTURE";
+        statusText.style.color = "#2ecc71";
+        captureBtn.disabled = false;
+        captureBtn.innerText = "CLICK TO CAPTURE"; // SYNCED
+        ring.style.borderColor = "#2ecc71";
+    }
+    lastX = smoothX; lastY = smoothY;
+}
+
+async function handleCapture() {
+    if (isLocked) return;
+    clearInterval(loop);
+    isLocked = true; 
+    statusText.innerText = "CAPTURING...";
+    captureBtn.innerText = "CAPTURING...";
+    
+    setTimeout(async () => {
+        const result = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+        if (result) {
+            faceDescriptor = Array.from(result.descriptor);
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob(blob => {
+                finalBlob = blob;
+                video.srcObject.getTracks().forEach(t => t.stop());
+                document.getElementById('scanner-ui').style.display = 'none';
+                document.getElementById('form-ui').style.display = 'block';
+            }, 'image/jpeg', 0.95);
+        } else {
+            isLocked = false;
+            statusText.innerText = "CAPTURE FAILED!";
+            captureBtn.innerText = "RETRY SCAN";
+            startCamera();
+        }
+    }, 600);
+}
+
+async function saveData() {
+    const btn = document.getElementById('subBtn');
+    if(!document.getElementById('faculty').value || !document.getElementById('dept').value) {
+        alert("Please select Faculty and Department");
+        return;
+    }
+    btn.disabled = true;
+    overlay.style.display = "flex";
+
+    try {
+        const matric = document.getElementById('matric').value.trim();
+        const upload = await Backendless.Files.upload(finalBlob, `/faces/${matric.replace(/\//g,"_")}.jpg`, true);
+        const user = new Backendless.User();
+        user.email = matric.replace(/\//g, "") + "@nsuk.edu.ng";
+        user.password = document.getElementById('pass').value;
+        user.name = document.getElementById('fullname').value;
+        user.face_descriptor = JSON.stringify(faceDescriptor); 
+        user.face_url = upload.fileURL;
+        user.faculty = document.getElementById('faculty').value;
+        user.department = document.getElementById('dept').value;
+        user.level = document.getElementById('level').value;
+
+        await Backendless.UserService.register(user);
+        
+        setTimeout(() => { window.location.href = "index.html"; }, 4000);
+    } catch (e) { 
+        overlay.style.display = "none";
+        alert("Error: " + e.message); 
+        btn.disabled = false; 
+    }
+}
+
+async function fetchDropdowns() {
+    try {
+        const facs = await Backendless.Data.of("University_Structure").find(Backendless.DataQueryBuilder.create().setProperties("faculty").setGroupBy("faculty"));
+        let options = '<option value="">-- Select Faculty --</option>';
+        facs.forEach(f => { options += `<option value="${f.faculty}">${f.faculty}</option>`; });
+        document.getElementById('faculty').innerHTML = options;
+
+        const lvls = await Backendless.Data.of("Academic_Levels").find(Backendless.DataQueryBuilder.create().setSortBy(["sortOrder ASC"]));
+        let lvlOpts = '<option value="">-- Select Level --</option>';
+        lvls.forEach(l => { lvlOpts += `<option value="${l.level_name}">${l.level_name}</option>`; });
+        document.getElementById('level').innerHTML = lvlOpts;
+    } catch(e) {}
+}
+
+async function loadDepts() {
+    const f = document.getElementById('faculty').value;
+    const deptSelect = document.getElementById('dept');
+    if(!f) {
+        deptSelect.innerHTML = '<option value="">-- Select Faculty First --</option>';
+        return;
+    }
+    try {
+        const res = await Backendless.Data.of("University_Structure").find(Backendless.DataQueryBuilder.create().setWhereClause(`faculty='${f}'`));
+        let options = '<option value="">-- Select Department --</option>';
+        res.forEach(d => { options += `<option value="${d.department}">${d.department}</option>`; });
+        deptSelect.innerHTML = options;
+    } catch(e) {}
+}
+</script>
+</body>
+</html>

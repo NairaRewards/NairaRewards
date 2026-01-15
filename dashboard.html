@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NSUK Student - Premium Dashboard</title>
+    <script src="https://api.backendless.com/sdk/js/latest/backendless.min.js"></script>
+    <style>
+        :root { 
+            --nsuk: #004d40; 
+            --gold: #ffc107; 
+            --bg: #f0f2f5; 
+            --white: #ffffff;
+            --success: #2ecc71;
+            --text-main: #1a1a1a;
+            --glass: rgba(255, 255, 255, 0.95);
+            --sidebar-width: 280px;
+        }
+        
+        body { 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            color: var(--text-main);
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR STYLING */
+        #sidebar {
+            position: fixed;
+            left: calc(-1 * var(--sidebar-width));
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100%;
+            background: var(--nsuk);
+            color: white;
+            transition: 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+            z-index: 10001;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.2);
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        #sidebar.open { left: 0; }
+
+        .sidebar-header {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: 0.3s;
+            gap: 15px;
+        }
+
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(255,255,255,0.1);
+            color: var(--gold);
+        }
+
+        /* MENU TOGGLE BUTTON */
+        .menu-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 10000;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* OVERLAY FOR SIDEBAR */
+        #sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        /* EXISTING PREMIUM HEADER */
+        .profile-header {
+            background: linear-gradient(135deg, var(--nsuk) 0%, #002d26 100%);
+            color: white;
+            padding: 70px 20px 70px; /* Increased top padding for menu button */
+            text-align: center;
+            border-bottom-left-radius: 45px;
+            border-bottom-right-radius: 45px;
+            box-shadow: 0 15px 35px rgba(0,77,64,0.2);
+            position: relative;
+        }
+
+        .img-container { position: relative; display: inline-block; margin-bottom: 15px; }
+        .profile-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid var(--gold); object-fit: cover; background: #fff; }
+        .live-dot { position: absolute; bottom: 10px; right: 10px; width: 18px; height: 18px; background: var(--success); border-radius: 50%; border: 3px solid var(--nsuk); animation: pulse 2s infinite; }
+        .student-name { font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; text-transform: uppercase; }
+        .student-id { font-size: 0.9rem; opacity: 0.9; font-weight: 700; margin-top: 5px; color: var(--gold); letter-spacing: 1px; }
+
+        /* DASHBOARD CONTENT */
+        .container { max-width: 500px; margin: -40px auto 0; padding: 0 18px; position: relative; z-index: 10; }
+        .glass-card { background: var(--glass); backdrop-filter: blur(15px); border-radius: 30px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 1px solid rgba(255,255,255,0.5); }
+        .section-title { font-size: 0.8rem; font-weight: 900; color: var(--nsuk); margin-bottom: 18px; text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; gap: 10px; }
+
+        /* DYNAMIC SELECT & BUTTON */
+        .course-picker { width: 100%; padding: 18px; border-radius: 18px; border: 2px solid #edf2f7; background: #fdfdfd; font-size: 1rem; font-weight: 700; color: var(--nsuk); margin-bottom: 20px; appearance: none; outline: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23004d40' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 20px center; background-size: 18px; }
+        .btn-mark { background: var(--nsuk); color: white; border: none; padding: 20px; width: 100%; border-radius: 20px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 12px 25px rgba(0,77,64,0.3); text-transform: uppercase; letter-spacing: 1px; }
+        .btn-mark:disabled { background: #cbd5e0; cursor: not-allowed; opacity: 0.7; }
+
+        .history-item { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid #f1f4f8; }
+        .log-info b { font-size: 1rem; color: var(--text-main); display: block; margin-bottom: 4px; }
+        .log-info span { font-size: 0.75rem; color: #8a94a6; font-weight: 700; }
+        .status-badge { background: #e6fcf5; color: #0ca678; padding: 6px 14px; border-radius: 12px; font-size: 0.7rem; font-weight: 900; }
+
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; color: white; text-align: center; backdrop-filter: blur(8px); }
+        .scanner-ring { width: 130px; height: 130px; border: 5px solid var(--gold); border-radius: 50%; border-top-color: transparent; animation: spin 0.8s linear infinite; margin-bottom: 30px; box-shadow: 0 0 30px rgba(255, 193, 7, 0.3); }
+
+        @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.7; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.7; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div id="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color: var(--gold); margin: 0; font-size: 1.5rem;">NSUK PORTAL</h2>
+        <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">Biometric Verification System</p>
+    </div>
+    
+    <a href="dashboard.html" class="sidebar-link active">
+        <span>🏠</span> Dashboard
+    </a>
+    <a href="Admin.html" class="sidebar-link">
+        <span>👨‍🏫</span> Lecturer Portal
+    </a>
+    
+    <div style="margin-top: 50px;">
+        <a href="#" class="sidebar-link" onclick="logout()" style="color: #ff5252;">
+            <span>🚪</span> Sign Out
+        </a>
+    </div>
+</div>
+
+<div id="overlay">
+    <div class="scanner-ring"></div>
+    <h2 id="status-msg">VIRTUAL BEACON SYNC</h2>
+    <p style="opacity: 0.7;" id="sub-text">Connecting to NSUK_ADMIN device...</p>
+</div>
+
+<div class="profile-header">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div class="img-container">
+        <img id="userImg" src="" class="profile-img">
+        <div class="live-dot"></div>
+    </div>
+    <h1 class="student-name" id="userName">...</h1>
+    <div class="student-id" id="userMatric">LOADING SESSION...</div>
+    <div style="margin-top:12px; font-size: 0.7rem; font-weight: 900; background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 16px; border-radius: 25px;" id="userLevel">300 LEVEL</div>
+</div>
+
+<div class="container">
+    <div class="glass-card">
+        <div class="section-title"><span>📡</span> ACTIVE ATTENDANCE WINDOW</div>
+        <select id="courseSelect" class="course-picker">
+            <option value="">Detecting Live Lectures...</option>
+        </select>
+        <button class="btn-mark" id="markBtn" disabled onclick="handleAttendance()">
+            VERIFY PROXIMITY
+        </button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <div class="glass-card" style="padding: 18px; margin-bottom: 0; text-align: center;">
+            <span style="display:block; font-size: 1.8rem; font-weight: 900; color: var(--nsuk);" id="totalPresent">0</span>
+            <span style="font-size: 0.65rem; font-weight: 900; color: #a0aec0; text-transform: uppercase;">Classes Attended</span>
+        </div>
+        <div class="glass-card" style="padding: 18px; margin-bottom: 0; text-align: center;">
+            <span style="display:block; font-size: 1.8rem; font-weight: 900; color: var(--gold);">100%</span>
+            <span style="font-size: 0.65rem; font-weight: 900; color: #a0aec0; text-transform: uppercase;">Verification</span>
+        </div>
+    </div>
+
+    <div class="glass-card">
+        <div class="section-title"><span>🕒</span> RECENT CHECK-INS</div>
+        <div id="historyList">
+            <p style="text-align:center; font-size: 0.85rem; color: #a0aec0;">Syncing logs...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+Backendless.initApp('523BE897-EEB4-4213-B3C7-136526B902A6','A49A96D8-B93B-4793-AE1B-7766D0DA8E84');
+
+const user = JSON.parse(localStorage.getItem("loggedUser"));
+if (!user) window.location.href = "login.html";
+
+// Populate UI
+document.getElementById('userName').innerText = user.name;
+document.getElementById('userMatric').innerText = user.email.split("@")[0].toUpperCase();
+document.getElementById('userImg').src = user.face_url;
+document.getElementById('userLevel').innerText = user.level || "LEVEL NOT SET";
+
+// SIDEBAR TOGGLE FUNCTION
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+        sidebar.classList.remove('open');
+        overlay.style.display = 'none';
+    } else {
+        sidebar.classList.add('open');
+        overlay.style.display = 'block';
+    }
+}
+
+async function loadCourses() {
+    try {
+        const select = document.getElementById('courseSelect');
+        const btn = document.getElementById('markBtn');
+        const whereClause = `isActive = true AND target_level = '${user.level}' AND department = '${user.department}'`;
+        const query = Backendless.DataQueryBuilder.create().setWhereClause(whereClause);
+        const activeCourses = await Backendless.Data.of("Courses").find(query);
+        
+        if (activeCourses.length === 0) {
+            select.innerHTML = '<option value="">No Active Lectures found.</option>';
+            btn.disabled = true;
+            return;
+        }
+        select.innerHTML = activeCourses.map(c => `<option value="${c.course_code}">${c.course_code}: ${c.course_name}</option>`).join('');
+        btn.disabled = false;
+    } catch(e) { console.error("Fetch failed."); }
+}
+
+async function handleAttendance() {
+    const course = document.getElementById('courseSelect').value;
+    document.getElementById('overlay').style.display = 'flex';
+    try {
+        await navigator.bluetooth.requestDevice({
+            filters: [{ name: 'NSUK_ADMIN' }],
+            optionalServices: ['battery_service'] 
+        });
+        await Backendless.Data.of("Attendance_Records").save({
+            student_id: user.objectId, student_name: user.name, matric_no: user.email.split("@")[0],
+            course_code: course, lecture_date: new Date(), department: user.department
+        });
+        document.getElementById('status-msg').innerText = "ATTENDANCE SECURED ✅";
+        setTimeout(() => location.reload(), 2000);
+    } catch (err) {
+        alert("PROXIMITY ERROR: Move closer to 'NSUK_ADMIN' device.");
+        document.getElementById('overlay').style.display = 'none';
+    }
+}
+
+async function loadHistory() {
+    const list = document.getElementById('historyList');
+    try {
+        const query = Backendless.DataQueryBuilder.create().setWhereClause(`student_id = '${user.objectId}'`).setSortBy(["lecture_date DESC"]).setPageSize(5);
+        const records = await Backendless.Data.of("Attendance_Records").find(query);
+        document.getElementById('totalPresent').innerText = records.length;
+        list.innerHTML = records.length ? records.map(r => `
+            <div class="history-item">
+                <div class="log-info"><b>${r.course_code}</b><span>${new Date(r.lecture_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                <div class="status-badge">VERIFIED</div>
+            </div>`).join('') : '<p style="text-align:center; color: #a0aec0;">No history found.</p>';
+    } catch(e) {}
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+loadCourses();
+loadHistory();
+</script>
+</body>
+</html>
